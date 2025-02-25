@@ -1,0 +1,24 @@
+# Elasticsearch 配置
+services:
+  auth:
+    elasticsearch:
+      host: "http://localhost:9200"
+      indexes:
+        - "logger-auth"
+        - "manual-auth"
+        - "error-auth"
+      user: "elastic"
+      password: "mB697yxVOE_SKTykjwg*"
+  service2:
+    elasticsearch:
+      host: "http://localhost:9201"
+      indexes:
+        - "logger-auth"
+        - "manual-auth"
+        - "error-auth"
+      user: "elastic"
+      password: "password2"
+
+logstash:
+  host: "localhost"
+  port: 5044
