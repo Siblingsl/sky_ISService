@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"sky_ISService/services/auth/service"
+	"sky_ISService/utils"
 )
 
 // AuthController 处理认证相关的请求
@@ -24,13 +25,13 @@ func (c *AuthController) AuthControllerRoutes(r *gin.Engine) {
 
 	// 注册路由
 	authGroup.GET("/register", func(ctx *gin.Context) {
-		message, err := c.authService.Register()
+		res, err := c.authService.Register()
 		if err != nil {
 			// 记录错误日志
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		ctx.JSON(http.StatusOK, gin.H{"message": message})
+		utils.Success(ctx, res)
 	})
 
 	// 登陆路由

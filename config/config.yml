@@ -1,24 +1,101 @@
 # Elasticsearch 配置
-services:
+log:
   auth:
-    elasticsearch:
-      host: "http://localhost:9200"
-      indexes:
-        - "logger-auth"
-        - "manual-auth"
-        - "error-auth"
-      user: "elastic"
-      password: "mB697yxVOE_SKTykjwg*"
-  service2:
-    elasticsearch:
-      host: "http://localhost:9201"
-      indexes:
-        - "logger-auth"
-        - "manual-auth"
-        - "error-auth"
-      user: "elastic"
-      password: "password2"
+    logger:
+      level:
+        - "debug"
+        - "info"
+        - "warn"
+        - "error"
+      filepath: "logs/authLog.log"
+      elasticsearch:
+        host: "http://localhost:9200"
+        indexes:
+          - "logger-auth"
+          - "manual-auth"
+          - "error-auth"
+        user: "elastic"
+        password: "mB697yxVOE_SKTykjwg*"
+      logstash:
+        host: "localhost"
+        port: 5044
+  system:
+    logger:
+      filepath: "logs/systemLog.log"
+      level:
+        - "debug"
+        - "info"
+        - "warn"
+        - "error"
+      elasticsearch:
+        host: "http://localhost:9200"
+        indexes:
+          - "logger-system"
+          - "manual-system"
+          - "error-system"
+        user: "elastic"
+        password: "mB697yxVOE_SKTykjwg*"
+      logstash:
+        host: "localhost"
+        port: 5044
 
-logstash:
-  host: "localhost"
-  port: 5044
+database:
+  auth:
+    postgresql:
+      host: "localhost"
+      port: "5432"
+      database: "sky_go_auth"
+      username: "postgres"
+      password: "root"
+#    redis:
+  system:
+    postgresql:
+      host: "localhost"
+      port: "5432"
+      database: "sky_go_system"
+      username: "postgres"
+      password: "root"
+
+# 消息队列
+message_queue:
+  rabbitmq:
+    host: "localhost"  # RabbitMQ 服务器地址
+    port: 5672  # 端口号，默认 5672
+    username: "guest"  # 连接用户名
+    password: "guest"  # 连接密码
+    virtual_host: "/"  # 虚拟主机
+    connection_timeout: 30000  # 连接超时时间（毫秒）
+    requested_heartbeat: 60  # 心跳检测（秒）
+    automatic_recovery: true  # 是否自动恢复连接
+    network_recovery_interval: 5000  # 连接恢复间隔（毫秒）
+    topology_recovery: true  # 是否恢复拓扑结构
+    exchange:
+      name: "my_exchange"  # 交换机名称
+      type: "direct"  # 交换机类型，可选 direct, topic, fanout, headers
+      durable: true  # 交换机是否持久化
+      auto_delete: false  # 交换机是否自动删除
+      internal: false  # 是否为内部交换机（仅供路由使用）
+    queue:
+      name: "my_queue"  # 队列名称
+      durable: true  # 是否持久化
+      exclusive: false  # 是否为独占队列
+      auto_delete: false  # 是否自动删除
+      max_priority: 10  # 最大优先级（仅适用于优先级队列）
+      arguments:
+        x-message-ttl: 60000  # 消息存活时间（毫秒）
+        x-dead-letter-exchange: "dlx_exchange"  # 死信交换机
+        x-dead-letter-routing-key: "dlx_routing_key"  # 死信路由键
+        x-max-length: 10000  # 队列最大长度（消息条数）
+    binding:
+      routing_key: "my_routing_key"  # 绑定的路由键
+    consumer:
+      prefetch_count: 10  # 每个消费者预取消息数量
+      auto_ack: false  # 是否自动确认消息
+      retry:
+        enabled: true  # 是否启用重试机制
+        max_attempts: 5  # 最大重试次数
+        delay: 5000  # 重试间隔（毫秒）
+    publisher:
+      mandatory: true  # 是否启用强制模式（消息无法路由时返回）
+      confirm_mode: true  # 是否开启发布确认
+      return_listener: true  # 是否开启消息返回监听

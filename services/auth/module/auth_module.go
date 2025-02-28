@@ -3,10 +3,13 @@ package moduleAuth
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
+	"gorm.io/gorm"
 	"sky_ISService/pkg/middleware"
 	"sky_ISService/services/auth/controller"
 	"sky_ISService/services/auth/repository"
+	"sky_ISService/services/auth/repository/models"
 	"sky_ISService/services/auth/service"
+	"sky_ISService/shared/database"
 )
 
 var AuthModule = fx.Options(
@@ -28,5 +31,20 @@ var AuthModule = fx.Options(
 		}
 		// 根据配置初始化功能
 		middleware.InitConfig(r, config)
+	}),
+
+	// 调用自动迁移，注册并迁移所有模型
+	fx.Invoke(func(db *gorm.DB) {
+		// 将所有模型添加到迁移列表
+		database.ModelsToMigrate = append(
+			database.ModelsToMigrate,
+			&models.SkyAuthUser{},
+			&models.SkyAuthToken{},
+		)
+
+		// 执行自动迁移
+		if err := database.AutoMigrate(db); err != nil {
+			panic("迁移失败: " + err.Error())
+		}
 	}),
 )
