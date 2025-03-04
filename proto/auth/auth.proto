@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package auth;
+
+// Go import path for the generated code
+option go_package = "./auth;auth";
+
+// AuthService RPC 服务定义
+service AuthService {
+  // Register RPC 方法
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+
+  // Login RPC 方法
+  rpc Login (LoginRequest) returns (LoginResponse);
+}
+
+// RegisterRequest 请求消息
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// RegisterResponse 响应消息
+message RegisterResponse {
+  string message = 1;
+  int32 status = 2;
+}
+
+// LoginRequest 请求消息
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// LoginResponse 响应消息
+message LoginResponse {
+  string token = 1;
+  int32 status = 2;
+}
+
+
+
+// 生成命令  protoc --proto_path=/home/shilei/code/golang/Gin/sky_ISService/proto --go_out=./ --go-grpc_out=./ /home/shilei/code/golang/Gin/sky_ISService/proto/auth/auth.proto

@@ -7,7 +7,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
 	"log"
-	logger "sky_ISService/utils"
 	"time"
 )
 
@@ -57,10 +56,9 @@ func LoggerMiddleware(indexName string, client *elasticsearch.Client) gin.Handle
 		)
 
 		if err != nil {
-			logger.LogError("日志记录失败: ", err)
 			fmt.Println("Elasticsearch 错误:", err.Error()) // 打印更详细的错误信息
 		} else {
-			logger.LogInfo("请求日志已成功记录到 Elasticsearch")
+			fmt.Println("请求日志已成功记录到 Elasticsearch")
 		}
 	}
 }
