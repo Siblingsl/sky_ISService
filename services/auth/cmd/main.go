@@ -1,19 +1,24 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"gorm.io/gorm"
 	"log"
+	"net"
 	"os"
-	configs "sky_ISService/config"
 	"sky_ISService/pkg/middleware"
-	loggerutils "sky_ISService/utils"
-
+	pb "sky_ISService/proto/auth"
 	moduleAuth "sky_ISService/services/auth/module"
+	"sky_ISService/services/auth/service"
+	es "sky_ISService/shared/elasticsearch"
+	"sky_ISService/shared/mq"
+	postgres "sky_ISService/shared/postgresql"
 )
 
 func main() {
@@ -26,7 +31,7 @@ func main() {
 		// 提供 PostgreSQL 客户端
 		fx.Provide(
 			func() (*gorm.DB, error) {
-				db, err := configs.InitPostgresConfig(serviceName, configPath)
+				db, err := postgres.InitPostgresConfig(serviceName, configPath)
 				if err != nil {
 					log.Fatalf("PostgreSQL 初始化失败: %v", err)
 				}
@@ -36,7 +41,7 @@ func main() {
 		// 提供 Elasticsearch 客户端
 		fx.Provide(
 			func() (*elasticsearch.Client, error) {
-				elasticClient, err := configs.InitElasticsearchConfig(serviceName, configPath)
+				elasticClient, err := es.InitElasticsearchConfig(configPath)
 				if err != nil {
 					log.Fatalf("Elasticsearch 初始化失败: %v", err)
 				}
@@ -44,16 +49,27 @@ func main() {
 			},
 		),
 		// 初始化日志系统
+		//fx.Provide(
+		//	func(elasticClient *elasticsearch.Client) (*logrus.Logger, error) {
+		//		fmt.Printf("Elasticsearch 客户端: %+v\n", elasticClient)
+		//		logs, err := sharedLogger.InitLogger(serviceName, configPath, elasticClient)
+		//		if err != nil {
+		//			fmt.Printf("日志配置: %+v\n", elasticClient)
+		//			return nil, fmt.Errorf("日志系统初始化失败: %v", err)
+		//		}
+		//		return logs, nil
+		//	},
+		//),
+		// 初始化 RabbitMQ 客户端
 		fx.Provide(
-			func(elasticClient *elasticsearch.Client) (*logrus.Logger, error) {
-				logger, err := configs.InitLogger(serviceName, configPath, elasticClient)
+			func() (*mq.RabbitMQClient, error) {
+				rmq, err := mq.InitRabbitMQ(configPath)
 				if err != nil {
-					return nil, fmt.Errorf("日志系统初始化失败: %v", err)
+					log.Fatalf("RabbitMQ 初始化失败: %v", err)
 				}
-				return logger, nil
+				return rmq, nil
 			},
 		),
-
 		// 提供 gin.Engine 实例到容器中
 		fx.Provide(
 			func(db *gorm.DB, elasticClient *elasticsearch.Client) *gin.Engine {
@@ -70,7 +86,31 @@ func main() {
 		moduleAuth.AuthModule,
 
 		// 启动时运行的函数
-		fx.Invoke(func(r *gin.Engine, logger *logrus.Logger) {
+		fx.Invoke(func(r *gin.Engine,
+			//logger *logrus.Logger,
+			mqClient *mq.RabbitMQClient,
+			authService *service.AuthService,
+		) {
+
+			// 启动 gRPC 服务
+			go func() {
+				// 监听 gRPC 请求
+				lis, err := net.Listen("tcp", ":50051")
+				if err != nil {
+					log.Fatalf("failed to listen: %v", err)
+				}
+				grpcServer := grpc.NewServer()
+				// 注册 gRPC 服务
+				pb.RegisterAuthServiceServer(grpcServer, authService)
+				// 启用 gRPC 服务的反射
+				reflection.Register(grpcServer)
+				// 启动 gRPC 服务器
+				fmt.Println("启动 gRPC 服务在端口 50051...")
+				if err := grpcServer.Serve(lis); err != nil {
+					log.Fatalf("failed to serve: %v", err)
+				}
+			}()
+
 			// 启动服务
 			port := os.Getenv("PORT")
 			if port == "" {
@@ -78,13 +118,24 @@ func main() {
 			}
 
 			// 打印初始化的日志信息
-			loggerutils.LogInfo("日志系统初始化成功")
-			configs.SetLogger(logger)
+			//loggerutils.LogInfo("日志系统初始化成功")
+			//sharedLogger.SetLogger(logger)
 
 			// 启动 Gin 引擎
 			if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
 				log.Fatalf("服务启动失败: %v", err)
 			}
+		}),
+
+		// 确保 MQ 连接在应用关闭时正确关闭
+		fx.Invoke(func(lc fx.Lifecycle, client *mq.RabbitMQClient) {
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					log.Println("关闭 RabbitMQ 连接...")
+					client.Close()
+					return nil
+				},
+			})
 		}),
 	)
 

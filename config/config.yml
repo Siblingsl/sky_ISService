@@ -1,43 +1,35 @@
-# Elasticsearch 配置
-log:
+# 日志 配置
+logger:
   auth:
-    logger:
-      level:
-        - "debug"
-        - "info"
-        - "warn"
-        - "error"
-      filepath: "logs/authLog.log"
-      elasticsearch:
-        host: "http://localhost:9200"
-        indexes:
-          - "logger-auth"
-          - "manual-auth"
-          - "error-auth"
-        user: "elastic"
-        password: "mB697yxVOE_SKTykjwg*"
-      logstash:
-        host: "localhost"
-        port: 5044
+    filepath: "logs/authLog.log"
+    level:
+      - "debug"
+      - "info"
+      - "warn"
+      - "error"
   system:
-    logger:
-      filepath: "logs/systemLog.log"
-      level:
-        - "debug"
-        - "info"
-        - "warn"
-        - "error"
-      elasticsearch:
-        host: "http://localhost:9200"
-        indexes:
-          - "logger-system"
-          - "manual-system"
-          - "error-system"
-        user: "elastic"
-        password: "mB697yxVOE_SKTykjwg*"
-      logstash:
-        host: "localhost"
-        port: 5044
+    filepath: "logs/systemLog.log"
+    level:
+      - "debug"
+      - "info"
+      - "warn"
+      - "error"
+
+# ELK 配置
+elk:
+  # Elasticsearch 配置
+  elasticsearch:
+    host: "http://localhost:9200"
+    indexes:
+      - "logger-auth"
+      - "manual-auth"
+      - "error-auth"
+    user: "elastic"
+    password: "mB697yxVOE_SKTykjwg*"
+
+  logstash:
+    host: "localhost"
+    port: 5044
 
 database:
   auth:
