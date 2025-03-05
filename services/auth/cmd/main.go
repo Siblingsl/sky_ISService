@@ -6,14 +6,11 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"gorm.io/gorm"
 	"log"
-	"net"
 	"os"
+	grpc "sky_ISService/pkg/grpc"
 	"sky_ISService/pkg/middleware"
-	pb "sky_ISService/proto/auth"
 	moduleAuth "sky_ISService/services/auth/module"
 	"sky_ISService/services/auth/service"
 	es "sky_ISService/shared/elasticsearch"
@@ -70,6 +67,12 @@ func main() {
 				return rmq, nil
 			},
 		),
+		// 提供 gRPC 服务器
+		fx.Provide(
+			func(authService *service.AuthService) *grpc.GRpcServer {
+				return grpc.NewGRpcServer(authService)
+			},
+		),
 		// 提供 gin.Engine 实例到容器中
 		fx.Provide(
 			func(db *gorm.DB, elasticClient *elasticsearch.Client) *gin.Engine {
@@ -89,27 +92,7 @@ func main() {
 		fx.Invoke(func(r *gin.Engine,
 			//logger *logrus.Logger,
 			mqClient *mq.RabbitMQClient,
-			authService *service.AuthService,
 		) {
-
-			// 启动 gRPC 服务
-			go func() {
-				// 监听 gRPC 请求
-				lis, err := net.Listen("tcp", ":50051")
-				if err != nil {
-					log.Fatalf("failed to listen: %v", err)
-				}
-				grpcServer := grpc.NewServer()
-				// 注册 gRPC 服务
-				pb.RegisterAuthServiceServer(grpcServer, authService)
-				// 启用 gRPC 服务的反射
-				reflection.Register(grpcServer)
-				// 启动 gRPC 服务器
-				fmt.Println("启动 gRPC 服务在端口 50051...")
-				if err := grpcServer.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
-				}
-			}()
 
 			// 启动服务
 			port := os.Getenv("PORT")
@@ -133,6 +116,19 @@ func main() {
 				OnStop: func(ctx context.Context) error {
 					log.Println("关闭 RabbitMQ 连接...")
 					client.Close()
+					return nil
+				},
+			})
+		}),
+		// 启动 gRPC 服务器
+		fx.Invoke(func(lc fx.Lifecycle, grpcServer *grpc.GRpcServer) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					go grpcServer.Start()
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					grpcServer.Stop()
 					return nil
 				},
 			})

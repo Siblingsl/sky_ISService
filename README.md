@@ -99,3 +99,10 @@
 ### `go.mod`              # Go 依赖管理
 
 ### `README.md`           # 项目文档
+
+
+### 目前尚未配置完成的有 统一错误处理、服务注册与发现、Redis、Swagger、CI/CD 和自动化部署
+
+### 不要删除auth
+用户登录、注册：这些是身份验证服务的核心职责，API Gateway 不应该直接处理这些操作。
+Token 生成与管理：API Gateway 只负责验证 Token，而不生成或管理它们。

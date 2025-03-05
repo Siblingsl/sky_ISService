@@ -7,6 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.17.1
 	github.com/gin-gonic/gin v1.10.0
+	github.com/juju/ratelimit v1.0.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/streadway/amqp v1.1.0
 	go.uber.org/fx v1.23.0

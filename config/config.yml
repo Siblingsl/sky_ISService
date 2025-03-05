@@ -91,3 +91,9 @@ message_queue:
       mandatory: true  # 是否启用强制模式（消息无法路由时返回）
       confirm_mode: true  # 是否开启发布确认
       return_listener: true  # 是否开启消息返回监听
+
+# 网关
+gateway:
+  authService: "localhost:8081"  # 你的身份验证服务地址
+  systemService: "localhost:8082" # 系统管理服务地址
+  loggingEnabled: true

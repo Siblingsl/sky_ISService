@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	grpc "sky_ISService/pkg/grpc"
 	"sky_ISService/pkg/middleware"
 	es "sky_ISService/shared/elasticsearch"
 	"sky_ISService/shared/mq"
@@ -65,6 +66,13 @@ func main() {
 				return rmq, nil
 			},
 		),
+		// 提供 gRPC 客户端
+		fx.Provide(
+			func() *grpc.GRpcClient {
+				// 在这里指定 auth 服务的地址
+				return grpc.NewGRpcClient("localhost", 50051)
+			},
+		),
 		// 提供 gin.Engine 实例到容器中
 		fx.Provide(
 			func(db *gorm.DB, elasticClient *elasticsearch.Client) *gin.Engine {
@@ -84,6 +92,7 @@ func main() {
 		fx.Invoke(func(r *gin.Engine,
 			//logger *logrus.Logger,
 			mqClient *mq.RabbitMQClient) {
+
 			// 启动服务
 			port := os.Getenv("PORT")
 			if port == "" {
