@@ -2,7 +2,6 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"sky_ISService/services/system/service"
 )
 
@@ -22,10 +21,12 @@ func (c *UserController) UserControllerRoutes(r *gin.Engine) {
 
 	// 管理员用户
 	userGroup.GET("/admin", func(ctx *gin.Context) {
-		message, err := c.userService.AddUser()
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		ctx.JSON(http.StatusOK, gin.H{"message": message})
+		//message, err := c.userService.AddUser()
+		//if err != nil {
+		//	ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		//}
+		//ctx.JSON(http.StatusOK, gin.H{"message": message})
+
+		ctx.String(200, "admin") // 正确的响应方式，返回状态码和内容
 	})
 }

@@ -93,10 +93,14 @@ func main() {
 			//logger *logrus.Logger,
 			mqClient *mq.RabbitMQClient) {
 
-			// 启动服务
-			port := os.Getenv("PORT")
-			if port == "" {
-				port = "8082"
+			// 启动服务 多端口监听
+			port1 := os.Getenv("PORT")
+			if port1 == "" {
+				port1 = "8083"
+			}
+			port2 := os.Getenv("PORT2")
+			if port2 == "" {
+				port2 = "8084" // 默认使用8084端口
 			}
 
 			// 打印初始化的日志信息
@@ -104,9 +108,20 @@ func main() {
 			//sharedLogger.SetLogger(logger)
 
 			// 启动 Gin 引擎
-			if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
-				log.Fatalf("服务启动失败: %v", err)
-			}
+			go func() {
+				if err := r.Run(fmt.Sprintf(":%s", port1)); err != nil {
+					log.Fatalf("服务启动失败: %v", err)
+				}
+			}()
+
+			go func() {
+				if err := r.Run(fmt.Sprintf(":%s", port2)); err != nil {
+					log.Fatalf("服务启动失败: %v", err)
+				}
+			}()
+
+			// 阻塞等待，防止主 goroutine 退出
+			select {}
 		}),
 
 		// 确保 MQ 连接在应用关闭时正确关闭

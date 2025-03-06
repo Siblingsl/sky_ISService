@@ -60,7 +60,10 @@ func newRabbitMQClient(configPath string) (*RabbitMQClient, error) {
 	for i := 0; i < cap(channelPool); i++ {
 		ch, err := conn.Channel()
 		if err != nil {
-			conn.Close()
+			err := conn.Close()
+			if err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("无法创建通道: %v", err)
 		}
 		channelPool <- ch
@@ -72,13 +75,17 @@ func newRabbitMQClient(configPath string) (*RabbitMQClient, error) {
 
 // GetChannel 从连接池获取一个可用的 channel
 func (r *RabbitMQClient) GetChannel() (*amqp.Channel, error) {
-	select {
-	case ch := <-r.ChannelPool:
-		return ch, nil
-	default:
-		// 若连接池中没有可用 channel，则创建新的 channel
-		return r.Connection.Channel()
+	if r.ChannelPool == nil {
+		// 如果 ChannelPool 是 nil，进行初始化
+		r.ChannelPool = make(chan *amqp.Channel, 10) // 假设是一个大小为 10 的缓冲 channel
 	}
+
+	// 执行获取操作
+	ch := <-r.ChannelPool
+	if ch == nil {
+		return nil, fmt.Errorf("channel is nil")
+	}
+	return ch, nil
 }
 
 // ReleaseChannel 释放 channel 回到连接池
@@ -88,7 +95,10 @@ func (r *RabbitMQClient) ReleaseChannel(ch *amqp.Channel) {
 		// 成功回收通道
 	default:
 		// 通道池已满，直接关闭
-		ch.Close()
+		err := ch.Close()
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -99,16 +109,16 @@ func (r *RabbitMQClient) SendMessage(queueName, message string) error {
 		log.Printf("无法获取通道: %s", err)
 		return err
 	}
-	defer r.ReleaseChannel(ch) // 释放通道回到池中
-
-	// 声明队列
-	_, err = ch.QueueDeclare(
-		queueName, true, false, false, false, nil,
-	)
-	if err != nil {
-		log.Printf("无法声明队列: %s", err)
-		return err
-	}
+	//defer r.ReleaseChannel(ch) // 释放通道回到池中
+	//
+	//// 声明队列
+	//_, err = ch.QueueDeclare(
+	//	queueName, true, false, false, false, nil,
+	//)
+	//if err != nil {
+	//	log.Printf("无法声明队列: %s", err)
+	//	return err
+	//}
 
 	// 发送消息
 	err = ch.Publish(
@@ -131,7 +141,13 @@ func (r *RabbitMQClient) SendMessage(queueName, message string) error {
 func (r *RabbitMQClient) Close() {
 	close(r.ChannelPool) // 关闭连接池
 	for ch := range r.ChannelPool {
-		ch.Close()
+		err := ch.Close()
+		if err != nil {
+			return
+		}
 	}
-	r.Connection.Close()
+	err := r.Connection.Close()
+	if err != nil {
+		return
+	}
 }

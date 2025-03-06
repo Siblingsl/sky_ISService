@@ -61,4 +61,8 @@ func (c *AuthController) AuthControllerRoutes(r *gin.Engine) {
 		}
 		utils.Success(ctx, res)
 	})
+
+	authGroup.GET("/demo", func(ctx *gin.Context) {
+		ctx.String(200, "12131654513") // 正确的响应方式，返回状态码和内容
+	})
 }

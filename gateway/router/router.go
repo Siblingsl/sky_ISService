@@ -5,8 +5,11 @@ import (
 	"sky_ISService/gateway/proxy"
 )
 
-// SetupRoutes 配置 API Gateway 路由
-func SetupRoutes(router *gin.Engine) {
-	router.GET("/auth/*path", proxy.ReverseProxy("http://localhost:8081"))   // 身份验证服务
-	router.GET("/system/*path", proxy.ReverseProxy("http://localhost:8082")) // 系统管理服务
+// NewRouter 创建一个新的 Gin 引擎实例，并将代理功能集成进去
+func NewRouter(p *proxy.Proxy) *gin.Engine {
+	r := gin.Default()
+	r.Any("/*path", func(c *gin.Context) {
+		p.ServeHTTP(c.Writer, c.Request)
+	})
+	return r
 }
