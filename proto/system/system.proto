@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package system;
+
+// Go import path for the generated code
+option go_package = "sky_ISService/proto/system;system";
+
+// SystemService RPC 服务定义
+service SystemService {
+  // 验证用户是否为管理员 RPC 方法
+  rpc VerifyIsSystemAdmin (VerifyIsSystemAdminRequest) returns (VerifyIsSystemAdminResponse);
+}
+
+message VerifyIsSystemAdminRequest {
+  string userId = 1; // 用户的 ID
+  string userName = 2; // 用户的名字
+}
+
+message VerifyIsSystemAdminResponse {
+  bool isAdmin = 1; // 是否为管理员
+  string userName = 2; // 用户名
+}
+
+
+
+
+
+// 生成命令  protoc --proto_path=/home/shilei/code/golang/Gin/sky_ISService/proto --go_out=./ --go-grpc_out=./ /home/shilei/code/golang/Gin/sky_ISService/proto/auth/auth.proto

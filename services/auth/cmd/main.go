@@ -3,19 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
+	"github.com/hashicorp/consul/api"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 	"log"
 	"os"
-	grpc "sky_ISService/pkg/grpc"
+	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
 	moduleAuth "sky_ISService/services/auth/module"
-	"sky_ISService/services/auth/service"
-	es "sky_ISService/shared/elasticsearch"
+	"sky_ISService/shared/cache"
+	"sky_ISService/shared/elasticsearch"
 	"sky_ISService/shared/mq"
 	postgres "sky_ISService/shared/postgresql"
+	consul "sky_ISService/shared/registerservice"
 )
 
 func main() {
@@ -23,8 +24,29 @@ func main() {
 	serviceName := "auth"             // 服务名
 	configPath := "config/config.yml" // 配置文件路径
 
+	// 引入 Elasticsearch、Redis 和 RabbitMQ 客户端
+	esClient, redisClient, rmqClient, err := initialize.InitServices(configPath)
+	if err != nil {
+		log.Fatalf("服务初始化失败: %v", err)
+	}
+
 	// 使用 Fx 创建应用
 	app := fx.New(
+		fx.Provide(
+			// 提供 Elasticsearch 客户端
+			func() *elasticsearch.ElasticsearchClient {
+				return esClient
+			},
+			// 提供 Redis 客户端
+			func() *cache.RedisClient {
+				return redisClient
+			},
+			// 提供 Mq 客户端
+			func() *mq.RabbitMQClient {
+				return rmqClient
+			},
+		),
+
 		// 提供 PostgreSQL 客户端
 		fx.Provide(
 			func() (*gorm.DB, error) {
@@ -35,16 +57,7 @@ func main() {
 				return db, nil
 			},
 		),
-		// 提供 Elasticsearch 客户端
-		fx.Provide(
-			func() (*elasticsearch.Client, error) {
-				elasticClient, err := es.InitElasticsearchConfig(configPath)
-				if err != nil {
-					log.Fatalf("Elasticsearch 初始化失败: %v", err)
-				}
-				return elasticClient, nil
-			},
-		),
+
 		// 初始化日志系统
 		//fx.Provide(
 		//	func(elasticClient *elasticsearch.Client) (*logrus.Logger, error) {
@@ -57,25 +70,10 @@ func main() {
 		//		return logs, nil
 		//	},
 		//),
-		// 初始化 RabbitMQ 客户端
-		fx.Provide(
-			func() (*mq.RabbitMQClient, error) {
-				rmq, err := mq.InitRabbitMQ(configPath)
-				if err != nil {
-					log.Fatalf("RabbitMQ 初始化失败: %v", err)
-				}
-				return rmq, nil
-			},
-		),
-		// 提供 gRPC 服务器
-		fx.Provide(
-			func(authService *service.AuthService) *grpc.GRpcServer {
-				return grpc.NewGRpcServer(authService)
-			},
-		),
+
 		// 提供 gin.Engine 实例到容器中
 		fx.Provide(
-			func(db *gorm.DB, elasticClient *elasticsearch.Client) *gin.Engine {
+			func(db *gorm.DB, elasticClient *elasticsearch.ElasticsearchClient) *gin.Engine {
 				r := gin.Default()
 				// 使用中间件
 				r.Use(middleware.DBMiddleware(db))
@@ -87,6 +85,29 @@ func main() {
 
 		// 注册 AuthModule
 		moduleAuth.AuthModule,
+
+		// 提供 Consul 客户端
+		fx.Provide(
+			func() (*api.Client, error) {
+				client, err := consul.InitConsul(configPath)
+				if err != nil {
+					log.Fatalf("Consul 初始化失败: %v", err)
+				}
+				return client, nil
+			},
+		),
+
+		// 在服务启动时注册服务到 Consul
+		fx.Invoke(func(client *api.Client) {
+			serviceName := "auth"
+			serviceID := fmt.Sprintf("%s-id", serviceName)
+			address := "127.0.0.1" // 服务的 IP 地址
+			port := 8081           // 服务端口
+			// 注册服务到 Consul
+			if err := consul.RegisterServiceConsul(client, serviceName, serviceID, address, port); err != nil {
+				log.Fatalf("服务注册失败: %v", err)
+			}
+		}),
 
 		// 启动时运行的函数
 		fx.Invoke(func(r *gin.Engine,
@@ -135,15 +156,15 @@ func main() {
 				},
 			})
 		}),
-		// 启动 gRPC 服务器
-		fx.Invoke(func(lc fx.Lifecycle, grpcServer *grpc.GRpcServer) {
+		// 在应用关闭时释放 Redis 连接
+		fx.Invoke(func(lc fx.Lifecycle, client *cache.RedisClient) {
 			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					go grpcServer.Start()
-					return nil
-				},
 				OnStop: func(ctx context.Context) error {
-					grpcServer.Stop()
+					log.Println("关闭 Redis 连接...")
+					err := client.Close()
+					if err != nil {
+						return err
+					}
 					return nil
 				},
 			})

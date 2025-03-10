@@ -11,13 +11,43 @@ import (
 	"os/signal"
 	"sky_ISService/gateway/proxy"
 	"sky_ISService/gateway/router"
+	"sky_ISService/gateway/swagger"
+	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
+	"sky_ISService/pkg/shutdown"
+	"sky_ISService/shared/cache"
+	"sky_ISService/shared/elasticsearch"
+	"sky_ISService/shared/mq"
+	consul "sky_ISService/shared/registerservice"
 	"sync"
 	"syscall"
 	"time"
 )
 
+// @title SKY
+// @version 1.0
+// @description 独立站项目
+
+// @contact.name shilei
+
+// @host localhost:8080
 func main() {
+
+	// 读取配置路径
+	configPath := "config/config.yml"
+
+	// 引入 Elasticsearch、Redis 和 RabbitMQ 客户端
+	esClient, redisClient, rmqClient, err := initialize.InitServices(configPath)
+	if err != nil {
+		log.Fatalf("服务初始化失败: %v", err)
+	}
+
+	// 初始化 Consul 客户端
+	consulClient, err := consul.InitConsul(configPath)
+	if err != nil {
+		log.Fatalf("Consul 初始化失败: %v", err)
+	}
+
 	// 使用 WaitGroup 来等待所有服务的启动和关闭
 	var wg sync.WaitGroup
 
@@ -30,6 +60,20 @@ func main() {
 		fx.Provide(
 			proxy.NewProxy,
 		),
+		fx.Provide(
+			// 提供 Elasticsearch 客户端
+			func() *elasticsearch.ElasticsearchClient {
+				return esClient
+			},
+			// 提供 Redis 客户端
+			func() *cache.RedisClient {
+				return redisClient
+			},
+			// 提供 Mq 客户端
+			func() *mq.RabbitMQClient {
+				return rmqClient
+			},
+		),
 
 		// 提供 Gin 引擎
 		fx.Provide(
@@ -41,6 +85,20 @@ func main() {
 				r.Use(middleware.CircuitMiddleware()) // 熔断中间件
 				r.Use(middleware.RecoveryMiddleware())
 				r.Use(middleware.ErrorHandlingMiddleware()) // 全局抓错中间件
+				r.Use(middleware.JWTAuthMiddleware())       // JWT 验证中间件
+
+				// 初始化 Swagger
+				swagger.InitSwagger(r)
+
+				// 注册服务到 Consul
+				serviceName := "gateway"
+				serviceID := fmt.Sprintf("%s-id", serviceName)
+				address := "127.0.0.1" // 服务的 IP 地址
+				port := 8080           // 服务的端口
+				err := consul.RegisterServiceConsul(consulClient, serviceName, serviceID, address, port)
+				if err != nil {
+					log.Fatalf("服务注册失败: %v", err)
+				}
 
 				return r
 			},
@@ -61,6 +119,11 @@ func main() {
 					return nil
 				},
 			})
+		}),
+
+		// 调用 shutdown 模块的 CloseServices 函数，关闭 RabbitMQ、Redis 连接
+		fx.Invoke(func(lc fx.Lifecycle, redisClient *cache.RedisClient, mqClient *mq.RabbitMQClient) {
+			shutdown.CloseServices(lc, redisClient, mqClient) // 这里调用我们的关闭服务函数
 		}),
 
 		// 启动时运行的函数

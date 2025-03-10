@@ -15,7 +15,7 @@ const (
 	ErrorCode   = 500
 )
 
-// 返回成功响应
+// Success 返回成功响应
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(200, Response{
 		Code:    SuccessCode,
@@ -24,7 +24,7 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
-// 返回错误响应
+// Error 返回错误响应
 func Error(c *gin.Context, code int, message string) {
 	c.JSON(code, Response{
 		Code:    code,

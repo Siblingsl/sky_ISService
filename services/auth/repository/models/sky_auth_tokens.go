@@ -1,7 +1,7 @@
 package models
 
 import (
-	"sky_ISService/shared/database"
+	"sky_ISService/utils/database"
 	"time"
 )
 

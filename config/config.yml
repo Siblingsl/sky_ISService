@@ -19,7 +19,8 @@ logger:
 elk:
   # Elasticsearch 配置
   elasticsearch:
-    host: "http://localhost:9200"
+    host: "localhost"
+    port: 9200
     indexes:
       - "logger-auth"
       - "manual-auth"
@@ -39,7 +40,6 @@ database:
       database: "sky_go_auth"
       username: "postgres"
       password: "root"
-#    redis:
   system:
     postgresql:
       host: "localhost"
@@ -47,6 +47,20 @@ database:
       database: "sky_go_system"
       username: "postgres"
       password: "root"
+
+# 缓存
+cache:
+  redis:
+    host: "localhost"
+    port: "6379"
+    password: ""
+    db: 0
+
+# 服务注册与发现
+register_service:
+  consul:
+    address: "127.0.0.1"
+    port: "8500"
 
 # 消息队列
 message_queue:
@@ -97,3 +111,16 @@ gateway:
   authService: "localhost:8081"  # 你的身份验证服务地址
   systemService: "localhost:8082" # 系统管理服务地址
   loggingEnabled: true
+
+
+# 是否启用路由日志中间件
+route_logger:
+  show: true
+
+# JWT
+jwt_secret:
+  secret: "qazwsxedc159357"
+
+# AES
+aes_secret:
+  secret: "fgbhujkosfgbh5g6t1f8sw2e3a6sx95e"

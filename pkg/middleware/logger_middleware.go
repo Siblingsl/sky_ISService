@@ -1,17 +1,14 @@
 package middleware
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
-	"log"
+	"sky_ISService/shared/elasticsearch"
 	"time"
 )
 
 // LoggerMiddleware Gin 中间件：自动记录每个请求的日志
-func LoggerMiddleware(indexName string, client *elasticsearch.Client) gin.HandlerFunc {
+func LoggerMiddleware(indexName string, client *elasticsearch.ElasticsearchClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 请求开始时间
 		start := time.Now()
@@ -42,23 +39,16 @@ func LoggerMiddleware(indexName string, client *elasticsearch.Client) gin.Handle
 			"时间":     time.Now().Format(time.RFC3339),
 		}
 
-		// 将文档转为 JSON
-		docJSON, err := json.Marshal(logData)
+		// 将日志文档插入到 Elasticsearch
+		result, err := client.CreateIndex(indexName, "", logData)
 		if err != nil {
-			log.Fatalf("Error marshaling document: %s", err)
-		}
-
-		// 发送日志数据存入 Elasticsearch
-		_, err = client.Index(
-			indexName,                       // 索引名称
-			bytes.NewReader(docJSON),        // 请求体内容
-			client.Index.WithOpType("_doc"), // 如果使用文档类型，可以指定，但7.x及以上版本通常不需要
-		)
-
-		if err != nil {
-			fmt.Println("Elasticsearch 错误:", err.Error()) // 打印更详细的错误信息
+			// 打印 Elasticsearch 错误
+			fmt.Println("Elasticsearch 错误:", err.Error())
 		} else {
+			// 成功记录日志
 			fmt.Println("请求日志已成功记录到 Elasticsearch")
+			// 打印 Elasticsearch 返回的创建结果（此处可以根据实际返回数据进行处理）
+			fmt.Println("文档创建成功:", result)
 		}
 	}
 }

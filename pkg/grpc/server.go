@@ -6,8 +6,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
-	"sky_ISService/proto/auth"
-	"sky_ISService/services/auth/service"
+	"sky_ISService/proto/system"
 )
 
 // GRpcServer 结构体
@@ -17,9 +16,11 @@ type GRpcServer struct {
 }
 
 // NewGRpcServer 创建 gRPC 服务器实例
-func NewGRpcServer(authService *service.AuthService) *GRpcServer {
+func NewGRpcServer(systemUserService system.SystemServiceServer) *GRpcServer {
 	grpcServer := grpc.NewServer()
-	auth.RegisterAuthServiceServer(grpcServer, authService)
+	// 注册 systemService 服务到 gRPC 服务器
+	system.RegisterSystemServiceServer(grpcServer, systemUserService)
+	// 启用 gRPC 服务反射
 	reflection.Register(grpcServer)
 
 	return &GRpcServer{

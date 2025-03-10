@@ -3,13 +3,14 @@ package moduleAuth
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 	"gorm.io/gorm"
-	"sky_ISService/pkg/middleware"
+	"log"
 	"sky_ISService/services/auth/controller"
 	"sky_ISService/services/auth/repository"
 	"sky_ISService/services/auth/repository/models"
 	"sky_ISService/services/auth/service"
-	"sky_ISService/shared/database"
+	"sky_ISService/utils/database"
 )
 
 var AuthModule = fx.Options(
@@ -18,19 +19,21 @@ var AuthModule = fx.Options(
 		repository.NewAuthRepository, // 提供 repository
 		service.NewAuthService,       // 提供 service
 		controller.NewAuthController, // 提供 controller
+		// 提供 grpc.ClientConn 连接
+		func() *grpc.ClientConn {
+			// 从配置中读取 gRPC 服务端地址
+			conn, err := grpc.Dial("http://localhost:50051", grpc.WithInsecure()) // 使用不安全连接（根据需要修改）
+			if err != nil {
+				log.Fatalf("gRPC 连接失败: %v", err)
+			}
+			return conn
+		},
 	),
 
 	// 注册路由
 	fx.Invoke(func(authController *controller.AuthController, r *gin.Engine) {
 		// 通过 controller 注册路由
 		authController.AuthControllerRoutes(r)
-
-		// 配置初始化的中间件
-		config := middleware.Config{
-			InitRouteLoggerMiddleware: true, // 控制是否启用控制台路由日志中间件
-		}
-		// 根据配置初始化功能
-		middleware.InitConfig(r, config)
 	}),
 
 	// 调用自动迁移，注册并迁移所有模型

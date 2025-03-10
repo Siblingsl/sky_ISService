@@ -1,20 +1,15 @@
 package grpc
 
 import (
-	"context"
 	"fmt"
 	"google.golang.org/grpc"
 	"log"
 	"sync"
-	"time"
-
-	pb "sky_ISService/proto/auth"
 )
 
 // GRpcClient 结构体，持久化 gRPC 连接
 type GRpcClient struct {
-	conn   *grpc.ClientConn
-	client pb.AuthServiceClient
+	conn *grpc.ClientConn
 }
 
 var (
@@ -32,28 +27,16 @@ func NewGRpcClient(host string, port int) *GRpcClient {
 		}
 
 		instance = &GRpcClient{
-			conn:   conn,
-			client: pb.NewAuthServiceClient(conn),
+			conn: conn,
 		}
 	})
 
 	return instance
 }
 
-// Login 调用 gRPC 认证服务
-func (c *GRpcClient) Login(username, password string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	resp, err := c.client.Login(ctx, &pb.LoginRequest{
-		Username: username,
-		Password: password,
-	})
-	if err != nil {
-		return "", fmt.Errorf("调用 Login 失败: %v", err)
-	}
-
-	return resp.Token, nil
+// GetConn 获取连接
+func (c *GRpcClient) GetConn() *grpc.ClientConn {
+	return c.conn
 }
 
 // Close 关闭 gRPC 连接

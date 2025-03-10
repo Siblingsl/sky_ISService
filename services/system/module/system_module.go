@@ -3,7 +3,6 @@ package moduleSystem
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
-	"sky_ISService/pkg/middleware"
 	"sky_ISService/services/system/controller"
 	"sky_ISService/services/system/repository"
 	"sky_ISService/services/system/service"
@@ -36,10 +35,10 @@ var SystemModules = fx.Options(
 		menuController.MenuControllerRoutes(r)
 
 		// 配置初始化的中间件
-		config := middleware.Config{
-			InitRouteLoggerMiddleware: true, // 控制是否启用控制台路由日志中间件
-		}
-		// 根据配置初始化功能
-		middleware.InitConfig(r, config)
+		//config := initialize.Config{
+		//	InitRouteLoggerMiddleware: true, // 控制是否启用控制台路由日志中间件
+		//}
+		//// 根据配置初始化功能
+		//initialize.InitConfig(r, config)
 	}),
 )
