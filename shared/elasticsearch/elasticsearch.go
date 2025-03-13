@@ -29,7 +29,7 @@ var (
 // @return error: 初始化过程中可能出现的错误
 func initElasticsearch(configPath string) (*ElasticsearchClient, error) {
 	// 加载配置文件
-	configElasticsearch, err := config.InitLoadConfig(configPath)
+	configElasticsearch, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, err
 	}

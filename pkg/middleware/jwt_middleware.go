@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"sky_ISService/utils"
 	"strings"
@@ -15,6 +16,8 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			"/auth/admins/login",
 			"/auth/login",
 			"/auth/register",
+			"/auth/admins/code",
+			"/swagger/index.html",
 		}
 
 		// 检查请求路径是否在不需要验证的路径列表中
@@ -41,6 +44,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
 			// Token 无效
+			log.Println("Error parsing token:", err)
 			utils.Error(c, http.StatusUnauthorized, "无效的 Token: "+err.Error())
 			c.Abort()
 			return

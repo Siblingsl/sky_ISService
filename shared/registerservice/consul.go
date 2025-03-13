@@ -9,7 +9,7 @@ import (
 
 // InitConsul 初始化 Consul 客户端
 func InitConsul(configPath string) (*api.Client, error) {
-	configConsul, err := config.InitLoadConfig(configPath)
+	configConsul, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("加载配置文件失败: %v", err)
 	}

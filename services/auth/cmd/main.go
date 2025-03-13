@@ -11,6 +11,8 @@ import (
 	"os"
 	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
+	"sky_ISService/proto/system"
+	"sky_ISService/services/auth/grpc"
 	moduleAuth "sky_ISService/services/auth/module"
 	"sky_ISService/shared/cache"
 	"sky_ISService/shared/elasticsearch"
@@ -44,6 +46,15 @@ func main() {
 			// 提供 Mq 客户端
 			func() *mq.RabbitMQClient {
 				return rmqClient
+			},
+			// 提供 gRPC 客户端
+			func() (system.SystemServiceClient, error) {
+				// 使用 grpc.NewSystemClient 来创建 gRPC 客户端
+				client, err := grpc.NewSystemClient()
+				if err != nil {
+					log.Fatalf("无法创建 gRPC 客户端: %v", err)
+				}
+				return client, nil
 			},
 		),
 

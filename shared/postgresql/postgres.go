@@ -9,7 +9,7 @@ import (
 
 // InitPostgres 初始化 PostgresSQL 客户端
 func initPostgres(serviceName, configPath string) (*gorm.DB, error) {
-	configSql, err := config.InitLoadConfig(configPath)
+	configSql, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, err
 	}

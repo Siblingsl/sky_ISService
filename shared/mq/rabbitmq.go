@@ -39,7 +39,7 @@ func InitRabbitMQ(configPath string) (*RabbitMQClient, error) {
 // @return error: 可能出现的错误
 func newRabbitMQClient(configPath string) (*RabbitMQClient, error) {
 	// 加载配置
-	cfg, err := config.InitLoadConfig(configPath)
+	cfg, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, err
 	}

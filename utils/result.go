@@ -19,7 +19,7 @@ const (
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(200, Response{
 		Code:    SuccessCode,
-		Message: "成功",
+		Message: "success",
 		Data:    data,
 	})
 }

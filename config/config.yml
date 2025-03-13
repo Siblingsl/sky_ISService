@@ -1,3 +1,8 @@
+# 路径
+path_config:
+  auth: "/home/shilei/code/golang/Gin/sky_ISService/services/auth/cmd/main.go"
+  system: "/home/shilei/code/golang/Gin/sky_ISService/services/system/cmd/main.go"
+
 # 日志 配置
 logger:
   auth:

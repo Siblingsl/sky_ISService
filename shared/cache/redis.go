@@ -28,7 +28,7 @@ var (
 // @return error: 初始化过程中可能出现的错误
 func initRedis(configPath string) (*RedisClient, error) {
 	// 加载配置文件
-	configRedis, err := config.InitLoadConfig(configPath)
+	configRedis, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, err
 	}

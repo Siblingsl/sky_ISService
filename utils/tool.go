@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"math/rand"
 	"net/mail"
 	"net/smtp"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
@@ -23,17 +26,16 @@ func GenerateRandomCode(length int) string {
 
 // SendEmail 发送验证码的邮件
 func SendEmail(email string, code string) error {
-	// 设置邮箱 SMTP 配置
-	smtpHost := "smtp.163.com"              // 163 邮箱 SMTP 服务器
-	smtpPort := "587"                       // SMTP 端口
-	senderEmail := "shilei07070707@163.com" // 发件人邮箱地址
-	senderPassword := "Sl1035515807"        // 发件人邮箱授权码
+	smtpHost := "smtp.163.com"
+	smtpPort := "465" // 465 端口使用 SSL 加密
+	senderEmail := "shilei07070707@163.com"
+	senderPassword := "RLQaJRA5GzRPPzFR" // 163 邮箱 SMTP 授权码
 
 	// 邮件主题
 	subject := "【安全验证】您的邮箱验证码"
 
-	// 读取 HTML 模板并替换验证码
-	htmlBody := `
+	// HTML 邮件内容
+	htmlBody := fmt.Sprintf(`
 		<!DOCTYPE html>
 		<html lang="zh-CN">
 		<head>
@@ -55,31 +57,70 @@ func SendEmail(email string, code string) error {
 		    <div class="container">
 		        <h2>您的邮箱验证码</h2>
 		        <p>您好，您的验证码是：</p>
-		        <div class="code">` + code + `</div>
-		        <p>该验证码有效期为 5 分钟，请尽快使用。</p>
+		        <div class="code">%s</div>
+		        <p>该验证码有效期为 1 分钟，请尽快使用。</p>
 		        <p>如果您没有请求此验证码，请忽略此邮件。</p>
-		        <div class="footer">© 2024 您的公司名称.芳科技商贸有限公司</div>
+		        <div class="footer">© 2025 芳科技商贸有限公司</div>
 		    </div>
 		</body>
-		</html>`
+		</html>`, code)
 
 	// 组装邮件消息
-	message := "From: " + senderEmail + "\r\n" +
-		"To: " + email + "\r\n" +
-		"Subject: " + subject + "\r\n" +
-		"MIME-Version: 1.0\r\n" +
-		"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
-		"\r\n" + htmlBody
+	message := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s",
+		senderEmail, email, subject, htmlBody)
 
-	// 认证信息
-	auth := smtp.PlainAuth("", senderEmail, senderPassword, smtpHost)
-
-	// 发送邮件
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, senderEmail, []string{email}, []byte(message))
-	if err != nil {
-		return fmt.Errorf("发送邮件失败: %v", err)
+	// 连接 SMTP 服务器
+	serverAddress := smtpHost + ":" + smtpPort
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: false, // 生产环境建议验证 CA 证书
+		ServerName:         smtpHost,
 	}
 
+	conn, err := tls.Dial("tcp", serverAddress, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("SMTP 连接失败: %v", err)
+	}
+	defer conn.Close()
+
+	// 创建 SMTP 客户端
+	client, err := smtp.NewClient(conn, smtpHost)
+	if err != nil {
+		return fmt.Errorf("创建 SMTP 客户端失败: %v", err)
+	}
+	defer client.Close()
+
+	// 进行身份验证
+	auth := smtp.PlainAuth("", senderEmail, senderPassword, smtpHost)
+	if err := client.Auth(auth); err != nil {
+		return fmt.Errorf("SMTP 身份验证失败: %v", err)
+	}
+
+	// 设置发件人和收件人
+	if err := client.Mail(senderEmail); err != nil {
+		return fmt.Errorf("设置发件人失败: %v", err)
+	}
+	if err := client.Rcpt(email); err != nil {
+		return fmt.Errorf("设置收件人失败: %v", err)
+	}
+
+	// 发送邮件数据
+	writer, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("获取写入器失败: %v", err)
+	}
+
+	_, err = writer.Write([]byte(message))
+	if err != nil {
+		return fmt.Errorf("邮件写入失败: %v", err)
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("关闭邮件写入失败: %v", err)
+	}
+
+	// 关闭 SMTP 连接
+	client.Quit()
 	return nil
 }
 
@@ -99,4 +140,40 @@ func IsValidEmail(email string) bool {
 func GetClientIP(c *gin.Context) string {
 	ip := c.ClientIP() // Gin提供的内置方法，直接获取客户端 IP
 	return ip
+}
+
+// ExtractConditions 从请求 URL 中提取分页和查询条件
+func ExtractConditions(ctx *gin.Context) (int, int, map[string]interface{}) {
+	// 获取请求中的分页参数
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(ctx.DefaultQuery("size", "10"))
+
+	// 创建一个 map 来存储动态查询条件
+	conditions := make(map[string]interface{})
+
+	// 获取请求中的所有查询参数，并将分页参数从中分离出去
+	for key, value := range ctx.Request.URL.Query() {
+		// 分离分页参数，不作为查询条件
+		if key == "page" || key == "size" {
+			continue
+		}
+		// 如果值不为空，则将其作为查询条件
+		if len(value) > 0 && value[0] != "" {
+			conditions[key] = value[0]
+		}
+	}
+
+	return page, size, conditions
+}
+
+// 获取当前工作目录并返回与相对路径组合后的绝对路径
+func GetAbsolutePath(relativePath string) (string, error) {
+	// 获取当前工作目录
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("获取当前目录错误: %v", err)
+	}
+	// 构造绝对路径
+	absolutePath := filepath.Join(wd, relativePath)
+	return absolutePath, nil
 }

@@ -7,3 +7,8 @@ type AdminLoginRequest struct {
 	Email    string `json:"email" binding:"required"`
 	Code     string `json:"code" binding:"required"`
 }
+
+// VerifyTokenRequest 用于验证 Token 请求
+type VerifyTokenRequest struct {
+	Token string `json:"token" binding:"required"`
+}

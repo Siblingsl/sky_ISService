@@ -3,9 +3,12 @@ package moduleSystem
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
+	"gorm.io/gorm"
 	"sky_ISService/services/system/controller"
 	"sky_ISService/services/system/repository"
+	"sky_ISService/services/system/repository/models"
 	"sky_ISService/services/system/service"
+	"sky_ISService/utils/database"
 )
 
 var SystemModules = fx.Options(
@@ -14,7 +17,7 @@ var SystemModules = fx.Options(
 		// user
 		controller.NewUserController,
 		service.NewUserService,
-		repository.NewUserRepository,
+		repository.NewAdminsRepository,
 		// role
 		controller.NewRoleController,
 		service.NewRoleService,
@@ -26,19 +29,26 @@ var SystemModules = fx.Options(
 	),
 
 	// 注册路由
-	fx.Invoke(func(userController *controller.UserController, roleController *controller.RoleController, menuController *controller.MenuController, r *gin.Engine) {
+	fx.Invoke(func(userController *controller.AdminsController, roleController *controller.RoleController, menuController *controller.MenuController, r *gin.Engine) {
 		// 注册 user 路由
 		userController.UserControllerRoutes(r)
 		// 注册 role 路由
 		roleController.RoleControllerRoutes(r)
 		// 注册 menu 路由
 		menuController.MenuControllerRoutes(r)
+	}),
 
-		// 配置初始化的中间件
-		//config := initialize.Config{
-		//	InitRouteLoggerMiddleware: true, // 控制是否启用控制台路由日志中间件
-		//}
-		//// 根据配置初始化功能
-		//initialize.InitConfig(r, config)
+	// 调用自动迁移，注册并迁移所有模型
+	fx.Invoke(func(db *gorm.DB) {
+		// 将所有模型添加到迁移列表
+		database.ModelsToMigrate = append(
+			database.ModelsToMigrate,
+			&models.SkySystemAdmins{},
+		)
+
+		// 执行自动迁移
+		if err := database.AutoMigrate(db); err != nil {
+			panic("迁移失败: " + err.Error())
+		}
 	}),
 )

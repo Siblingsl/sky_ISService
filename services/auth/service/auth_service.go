@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc"
-	"sky_ISService/config"
 	"sky_ISService/proto/system"
 	"sky_ISService/services/auth/dto"
+	"sky_ISService/services/auth/grpc"
 	"sky_ISService/services/auth/repository"
 	"sky_ISService/shared/cache"
 	"sky_ISService/shared/mq"
@@ -20,15 +19,17 @@ type AuthService struct {
 	authRepository *repository.AuthRepository
 	rabbitClient   *mq.RabbitMQClient
 	redisClient    *cache.RedisClient
-	systemClient   system.SystemServiceClient
+	grpcClient     system.SystemServiceClient
 }
 
-func NewAuthService(authRepository *repository.AuthRepository, rabbitClient *mq.RabbitMQClient, conn *grpc.ClientConn, redisClient *cache.RedisClient) *AuthService {
+func NewAuthService(authRepository *repository.AuthRepository, rabbitClient *mq.RabbitMQClient, redisClient *cache.RedisClient) *AuthService {
+	// 初始化 gRPC 客户端
+	grpcClient, _ := grpc.NewSystemClient()
 	return &AuthService{
 		authRepository: authRepository,
 		rabbitClient:   rabbitClient,
 		redisClient:    redisClient,
-		systemClient:   system.NewSystemServiceClient(conn),
+		grpcClient:     grpcClient,
 	}
 }
 
@@ -58,7 +59,7 @@ func (s *AuthService) AdminLogin(ctx context.Context, req dto.AdminLoginRequest)
 		UserId:   strconv.Itoa(int(user.ID)),
 		UserName: user.Username,
 	}
-	resp, err := s.systemClient.VerifyIsSystemAdmin(ctx, reqVerify)
+	resp, err := s.grpcClient.VerifyIsSystemAdmin(ctx, reqVerify)
 	if err != nil {
 		return "", fmt.Errorf("验证管理员身份失败: %v", err)
 	}
@@ -106,11 +107,10 @@ func (s *AuthService) SendEmailCode(ctx *gin.Context, email string) error {
 
 	// 5. 生成 6 位随机验证码（存储时做加密处理）
 	code := utils.GenerateRandomCode(6)
-	secretKey := config.GetConfig().AESSecret.Secret
-	encryptedCode, _ := utils.EncryptAES(code, secretKey) // 加密存储
-
-	// 6. 存储验证码到 Redis，5 分钟有效
-	err := s.redisClient.Set(email, encryptedCode, 1*time.Minute)
+	//secretKey := config.GetConfig().AESSecret.Secret
+	//encryptedCode, _ := utils.EncryptAES(code, secretKey) // 加密存储
+	// 6. 存储验证码到 Redis，1 分钟有效
+	err := s.redisClient.Set(email, code, 30*time.Minute)
 	if err != nil {
 		return fmt.Errorf("存储验证码到 Redis 失败: %v", err)
 	}

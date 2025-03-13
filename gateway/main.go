@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sky_ISService/config"
 	"sky_ISService/gateway/proxy"
 	"sky_ISService/gateway/router"
 	"sky_ISService/gateway/swagger"
@@ -19,6 +20,7 @@ import (
 	"sky_ISService/shared/elasticsearch"
 	"sky_ISService/shared/mq"
 	consul "sky_ISService/shared/registerservice"
+	"sky_ISService/utils"
 	"sync"
 	"syscall"
 	"time"
@@ -32,8 +34,17 @@ import (
 
 // @host localhost:8080
 func main() {
+	// 相对路径
+	relativePath := "services/auth/cmd/main.go"
 
-	// 读取配置路径
+	// 获取绝对路径
+	AuthPath, err := utils.GetAbsolutePath(relativePath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 将嵌入的配置文件写入到实际路径，防止程序找不到文件
 	configPath := "config/config.yml"
 
 	// 引入 Elasticsearch、Redis 和 RabbitMQ 客户端
@@ -109,8 +120,10 @@ func main() {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					// 启动服务
-					startServiceWithWaitGroup("./services/auth/cmd/main.go", wg)
-					startServiceWithWaitGroup("./services/system/cmd/main.go", wg)
+					//startServiceWithWaitGroup("./services/auth/cmd/main.go", wg)
+					//startServiceWithWaitGroup("./services/system/cmd/main.go", wg)
+					startServiceWithWaitGroup(AuthPath, wg)
+					startServiceWithWaitGroup(config.GetConfig().PathConfig.System, wg)
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {

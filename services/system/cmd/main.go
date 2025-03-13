@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/hashicorp/consul/api"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 	"log"
 	"os"
-	grpc "sky_ISService/pkg/grpc"
 	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
-	"sky_ISService/proto/system"
-	userService "sky_ISService/services/system/service"
+	"sky_ISService/services/system/grpc"
 	"sky_ISService/shared/cache"
 	"sky_ISService/shared/elasticsearch"
 	"sky_ISService/shared/mq"
 	postgres "sky_ISService/shared/postgresql"
+	consul "sky_ISService/shared/registerservice"
 
 	moduleSystem "sky_ISService/services/system/module"
 )
@@ -58,16 +58,6 @@ func main() {
 				return db, nil
 			},
 		),
-		// 提供 Elasticsearch 客户端
-		//fx.Provide(
-		//	func() (*elasticsearch.Client, error) {
-		//		elasticClient, err := es.InitElasticsearchConfig(configPath)
-		//		if err != nil {
-		//			log.Fatalf("Elasticsearch 初始化失败: %v", err)
-		//		}
-		//		return elasticClient.Client, nil
-		//	},
-		//),
 		// 初始化日志系统
 		//fx.Provide(
 		//	func(elasticClient *elasticsearch.Client) (*logrus.Logger, error) {
@@ -80,29 +70,7 @@ func main() {
 		//		return logs, nil
 		//	},
 		//),
-		// 初始化 RabbitMQ 客户端
-		//fx.Provide(
-		//	func() (*mq.RabbitMQClient, error) {
-		//		rmq, err := mq.InitRabbitMQ(configPath)
-		//		if err != nil {
-		//			log.Fatalf("RabbitMQ 初始化失败: %v", err)
-		//		}
-		//		return rmq, nil
-		//	},
-		//),
-		// 提供 gRPC 客户端
-		fx.Provide(
-			func() *grpc.GRpcClient {
-				// 在这里指定 auth 服务的地址
-				return grpc.NewGRpcClient("localhost", 50051)
-			},
-		),
-		// 提供 gRPC 服务器
-		fx.Provide(
-			func(userService *userService.UserService) system.SystemServiceServer {
-				return userService
-			},
-		),
+
 		// 提供 gin.Engine 实例到容器中
 		fx.Provide(
 			func(db *gorm.DB, elasticClient *elasticsearch.ElasticsearchClient) *gin.Engine {
@@ -118,11 +86,35 @@ func main() {
 		// 注册 SystemModules
 		moduleSystem.SystemModules,
 
+		// 提供 Consul 客户端
+		fx.Provide(
+			func() (*api.Client, error) {
+				client, err := consul.InitConsul(configPath)
+				if err != nil {
+					log.Fatalf("Consul 初始化失败: %v", err)
+				}
+				return client, nil
+			},
+		),
+
+		// 在服务启动时注册服务到 Consul
+		fx.Invoke(func(client *api.Client) {
+			serviceName := "auth"
+			serviceID := fmt.Sprintf("%s-id", serviceName)
+			address := "127.0.0.1" // 服务的 IP 地址
+			port := 8082           // 服务端口
+			// 注册服务到 Consul
+			if err := consul.RegisterServiceConsul(client, serviceName, serviceID, address, port); err != nil {
+				log.Fatalf("服务注册失败: %v", err)
+			}
+		}),
+
 		// 启动时运行的函数
 		fx.Invoke(func(r *gin.Engine,
 			//logger *logrus.Logger,
-			mqClient *mq.RabbitMQClient) {
-
+			mqClient *mq.RabbitMQClient,
+			lc fx.Lifecycle,
+		) {
 			// 启动服务 多端口监听
 			port1 := os.Getenv("PORT")
 			if port1 == "" {
@@ -136,6 +128,15 @@ func main() {
 			// 打印初始化的日志信息
 			//loggerutils.LogInfo("日志系统初始化成功")
 			//sharedLogger.SetLogger(logger)
+
+			// 启动 gRPC 服务
+			go func() {
+				err := grpc.StartSystemGRPCServer()
+				fmt.Println("gRPC 服务启动并监听 9999 端口")
+				if err != nil {
+					log.Fatalf("启动 gRPC 服务失败: %v", err)
+				}
+			}()
 
 			// 启动 Gin 引擎
 			go func() {
@@ -164,15 +165,15 @@ func main() {
 				},
 			})
 		}),
-		// 启动 gRPC 服务器
-		fx.Invoke(func(lc fx.Lifecycle, grpcServer *grpc.GRpcServer) {
+		// 在应用关闭时释放 Redis 连接
+		fx.Invoke(func(lc fx.Lifecycle, client *cache.RedisClient) {
 			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					go grpcServer.Start()
-					return nil
-				},
 				OnStop: func(ctx context.Context) error {
-					grpcServer.Stop()
+					log.Println("关闭 Redis 连接...")
+					err := client.Close()
+					if err != nil {
+						return err
+					}
 					return nil
 				},
 			})

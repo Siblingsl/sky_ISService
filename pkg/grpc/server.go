@@ -9,18 +9,16 @@ import (
 	"sky_ISService/proto/system"
 )
 
-// GRpcServer 结构体
+// GRpcServer 封装 gRPC 服务端的启动和停止逻辑
 type GRpcServer struct {
 	server *grpc.Server
 	port   int
 }
 
-// NewGRpcServer 创建 gRPC 服务器实例
+// NewGRpcServer 创建一个新的 gRPC 服务实例
 func NewGRpcServer(systemUserService system.SystemServiceServer) *GRpcServer {
 	grpcServer := grpc.NewServer()
-	// 注册 systemService 服务到 gRPC 服务器
 	system.RegisterSystemServiceServer(grpcServer, systemUserService)
-	// 启用 gRPC 服务反射
 	reflection.Register(grpcServer)
 
 	return &GRpcServer{
@@ -29,7 +27,7 @@ func NewGRpcServer(systemUserService system.SystemServiceServer) *GRpcServer {
 	}
 }
 
-// Start 启动 gRPC 服务器
+// Start 启动 gRPC 服务
 func (s *GRpcServer) Start() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
@@ -42,7 +40,7 @@ func (s *GRpcServer) Start() {
 	}
 }
 
-// Stop 关闭 gRPC 服务器
+// Stop 关闭 gRPC 服务
 func (s *GRpcServer) Stop() {
 	fmt.Println("正在关闭 gRPC 服务器...")
 	s.server.GracefulStop()

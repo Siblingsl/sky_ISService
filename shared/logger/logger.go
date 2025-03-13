@@ -50,7 +50,7 @@ func (hook *LogrusElasticHook) Fire(entry *logrus.Entry) error {
 func InitLogger(serviceName string, configPath string, client *elasticsearch.Client) (*logrus.Logger, error) {
 	fmt.Printf("日志初始化配置: serviceName=%s, configPath=%s\n", serviceName, configPath)
 	// 加载配置
-	configLogger, err := config.InitLoadConfig(configPath)
+	configLogger, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("无法加载配置: %v", err)
 	}
