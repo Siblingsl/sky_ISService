@@ -8,7 +8,7 @@ import (
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 	"log"
-	"os"
+	"sky_ISService/config"
 	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
 	"sky_ISService/services/system/grpc"
@@ -22,11 +22,10 @@ import (
 )
 
 func main() {
-	serviceName := "system"           // 服务名
-	configPath := "config/config.yml" // 配置文件路径
+	serviceName := "system" // 服务名
 
 	// 引入 Elasticsearch、Redis 和 RabbitMQ 客户端
-	esClient, redisClient, rmqClient, err := initialize.InitServices(configPath)
+	esClient, redisClient, rmqClient, err := initialize.InitServices()
 	if err != nil {
 		log.Fatalf("服务初始化失败: %v", err)
 	}
@@ -51,7 +50,7 @@ func main() {
 		// 提供 PostgreSQL 客户端
 		fx.Provide(
 			func() (*gorm.DB, error) {
-				db, err := postgres.InitPostgresConfig(serviceName, configPath)
+				db, err := postgres.InitPostgresConfig(serviceName)
 				if err != nil {
 					log.Fatalf("PostgreSQL 初始化失败: %v", err)
 				}
@@ -89,7 +88,7 @@ func main() {
 		// 提供 Consul 客户端
 		fx.Provide(
 			func() (*api.Client, error) {
-				client, err := consul.InitConsul(configPath)
+				client, err := consul.InitConsul()
 				if err != nil {
 					log.Fatalf("Consul 初始化失败: %v", err)
 				}
@@ -115,16 +114,6 @@ func main() {
 			mqClient *mq.RabbitMQClient,
 			lc fx.Lifecycle,
 		) {
-			// 启动服务 多端口监听
-			port1 := os.Getenv("PORT")
-			if port1 == "" {
-				port1 = "8083"
-			}
-			port2 := os.Getenv("PORT2")
-			if port2 == "" {
-				port2 = "8084" // 默认使用8084端口
-			}
-
 			// 打印初始化的日志信息
 			//loggerutils.LogInfo("日志系统初始化成功")
 			//sharedLogger.SetLogger(logger)
@@ -139,14 +128,15 @@ func main() {
 			}()
 
 			// 启动 Gin 引擎
+			fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().System.Host, config.GetConfig().System.Port))
 			go func() {
-				if err := r.Run(fmt.Sprintf(":%s", port1)); err != nil {
+				if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().System.Host, config.GetConfig().System.Port)); err != nil {
 					log.Fatalf("服务启动失败: %v", err)
 				}
 			}()
-
+			fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().System.Host, config.GetConfig().System.Port1))
 			go func() {
-				if err := r.Run(fmt.Sprintf(":%s", port2)); err != nil {
+				if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().System.Host, config.GetConfig().System.Port1)); err != nil {
 					log.Fatalf("服务启动失败: %v", err)
 				}
 			}()

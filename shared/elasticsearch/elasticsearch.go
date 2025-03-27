@@ -27,7 +27,7 @@ var (
 // @param configPath string: 配置文件路径
 // @return *ElasticsearchClient: Elasticsearch 客户端实例
 // @return error: 初始化过程中可能出现的错误
-func initElasticsearch(configPath string) (*ElasticsearchClient, error) {
+func initElasticsearch() (*ElasticsearchClient, error) {
 	// 加载配置文件
 	configElasticsearch, err := config.InitLoadConfig()
 	if err != nil {
@@ -59,14 +59,13 @@ func initElasticsearch(configPath string) (*ElasticsearchClient, error) {
 }
 
 // InitElasticsearchConfig 获取 Elasticsearch 单例
-// @param configPath string: 配置文件路径
 // @return *ElasticsearchClient: Elasticsearch 客户端实例
 // @return error: 可能的错误，如果 Elasticsearch 无法初始化
-func InitElasticsearchConfig(configPath string) (*ElasticsearchClient, error) {
+func InitElasticsearchConfig() (*ElasticsearchClient, error) {
 	// 保证 Elasticsearch 客户端只被初始化一次
 	once.Do(func() {
 		var err error
-		elasticsearchInstance, err = initElasticsearch(configPath)
+		elasticsearchInstance, err = initElasticsearch()
 		if err != nil {
 			fmt.Printf("初始化 Elasticsearch 失败: %v", err)
 		}

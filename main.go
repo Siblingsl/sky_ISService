@@ -34,27 +34,15 @@ import (
 
 // @host localhost:8080
 func main() {
-	// 相对路径
-	relativePath := "services/auth/cmd/main.go"
-
-	// 获取绝对路径
-	AuthPath, err := utils.GetAbsolutePath(relativePath)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// 将嵌入的配置文件写入到实际路径，防止程序找不到文件
-	configPath := "config/config.yml"
 
 	// 引入 Elasticsearch、Redis 和 RabbitMQ 客户端
-	esClient, redisClient, rmqClient, err := initialize.InitServices(configPath)
+	esClient, redisClient, rmqClient, err := initialize.InitServices()
 	if err != nil {
 		log.Fatalf("服务初始化失败: %v", err)
 	}
 
 	// 初始化 Consul 客户端
-	consulClient, err := consul.InitConsul(configPath)
+	consulClient, err := consul.InitConsul()
 	if err != nil {
 		log.Fatalf("Consul 初始化失败: %v", err)
 	}
@@ -119,11 +107,17 @@ func main() {
 		fx.Invoke(func(lc fx.Lifecycle, wg *sync.WaitGroup) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
-					// 启动服务
-					//startServiceWithWaitGroup("./services/auth/cmd/main.go", wg)
-					//startServiceWithWaitGroup("./services/system/cmd/main.go", wg)
-					startServiceWithWaitGroup(AuthPath, wg)
-					startServiceWithWaitGroup(config.GetConfig().PathConfig.System, wg)
+					//// 本地启动子服务
+					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Auth), wg)
+					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
+
+					// 本地模拟服务器
+					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Auth), wg)
+					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
+
+					// 服务器上用的
+					//startServiceWithWaitGroup("/www/wwwroot/go/auth", wg)
+					//startServiceWithWaitGroup("/www/wwwroot/go/system", wg)
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
@@ -141,15 +135,10 @@ func main() {
 
 		// 启动时运行的函数
 		fx.Invoke(func(r *gin.Engine) {
-			// 启动 Gin 引擎，监听端口
-			port := os.Getenv("PORT")
-			if port == "" {
-				port = "8080"
-			}
-
-			// 启动服务
+			// 启动 Gin 引擎
+			fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().Server.Host, config.GetConfig().Server.Port))
 			go func() {
-				if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
+				if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().Server.Host, config.GetConfig().Server.Port)); err != nil {
 					log.Fatalf("服务启动失败: %v", err)
 				}
 			}()
@@ -165,6 +154,32 @@ func main() {
 }
 
 // 启动服务并等待完成
+//func startServiceWithWaitGroup(servicePath string, wg *sync.WaitGroup) {
+//	wg.Add(1)
+//	go func() {
+//		defer wg.Done()
+//		if err := startService(servicePath); err != nil {
+//			log.Printf("启动服务 [%s] 失败: %v", servicePath, err)
+//		} else {
+//			log.Printf("服务 [%s] 启动成功", servicePath)
+//		}
+//	}()
+//}
+//
+//// 启动服务的通用函数
+//func startService(servicePath string) error {
+//	cmd := exec.Command("go", "run", servicePath)
+//	cmd.Stdout = os.Stdout
+//	cmd.Stderr = os.Stderr
+//	err := cmd.Start()
+//	if err != nil {
+//		return err
+//	}
+//	// 等待服务完成执行
+//	return cmd.Wait()
+//}
+
+// 服务上线需要用的
 func startServiceWithWaitGroup(servicePath string, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
@@ -177,9 +192,10 @@ func startServiceWithWaitGroup(servicePath string, wg *sync.WaitGroup) {
 	}()
 }
 
-// 启动服务的通用函数
+// 服务上线需要用的
 func startService(servicePath string) error {
-	cmd := exec.Command("go", "run", servicePath)
+	// 确保路径是正确的，不需要重复添加目录
+	cmd := exec.Command(servicePath) // 直接执行已经编译好的二进制文件
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Start()

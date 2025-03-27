@@ -8,11 +8,11 @@ import (
 
 // CommonBase 实体结构体，映射到数据库的 common_base 表
 type CommonBase struct {
-	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`                           // 主键，自增
-	Status    int       `gorm:"default:1" json:"status"`                                      // 状态字段，默认为 1
+	ID        int       `gorm:"primaryKey;autoIncrement" json:"id"`                           // 主键，自增，使用 int 类型
+	Status    bool      `gorm:"default:true" json:"status"`                                   // 状态字段，默认为 true
 	IsDeleted bool      `gorm:"default:false" json:"is_deleted"`                              // 删除标志，默认为 false
-	CreatedBy string    `gorm:"size:255;not null" json:"created_by"`                          // 创建者
-	UpdatedBy string    `gorm:"size:255" json:"updated_by"`                                   // 更新者
+	CreatedBy int       `gorm:"column:created_by" json:"created_by"`                          // 创建者，使用 int 类型
+	UpdatedBy int       `gorm:"size:255" json:"updated_by"`                                   // 更新者，使用 int 类型
 	CreatedAt time.Time `gorm:"type:timestamptz;default:CURRENT_TIMESTAMP" json:"created_at"` // 创建时间
 	UpdatedAt time.Time `gorm:"type:timestamptz;default:CURRENT_TIMESTAMP" json:"updated_at"` // 更新时间
 	Notes     string    `gorm:"type:text" json:"notes"`                                       // 备注

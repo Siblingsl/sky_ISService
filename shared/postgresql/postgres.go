@@ -8,7 +8,7 @@ import (
 )
 
 // InitPostgres 初始化 PostgresSQL 客户端
-func initPostgres(serviceName, configPath string) (*gorm.DB, error) {
+func initPostgres(serviceName string) (*gorm.DB, error) {
 	configSql, err := config.InitLoadConfig()
 	if err != nil {
 		return nil, err
@@ -33,6 +33,6 @@ func initPostgres(serviceName, configPath string) (*gorm.DB, error) {
 }
 
 // InitPostgresConfig 初始化 PostgresSQL
-func InitPostgresConfig(serviceName, configPath string) (*gorm.DB, error) {
-	return initPostgres(serviceName, configPath)
+func InitPostgresConfig(serviceName string) (*gorm.DB, error) {
+	return initPostgres(serviceName)
 }

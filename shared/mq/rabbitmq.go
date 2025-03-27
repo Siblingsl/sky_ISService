@@ -22,22 +22,20 @@ var (
 )
 
 // InitRabbitMQ 初始化 RabbitMQ 客户端并返回单例实例
-// @param configPath string: 配置文件路径
 // @return *RabbitMQClient: RabbitMQ 客户端实例
 // @return error: 初始化过程中可能出现的错误
-func InitRabbitMQ(configPath string) (*RabbitMQClient, error) {
+func InitRabbitMQ() (*RabbitMQClient, error) {
 	var err error
 	once.Do(func() { // 确保只执行一次
-		rabbitMQInstance, err = newRabbitMQClient(configPath)
+		rabbitMQInstance, err = newRabbitMQClient()
 	})
 	return rabbitMQInstance, err
 }
 
 // newRabbitMQClient 创建 RabbitMQ 连接和通道池
-// @param configPath string: 配置文件路径
 // @return *RabbitMQClient: 初始化的 RabbitMQ 客户端实例
 // @return error: 可能出现的错误
-func newRabbitMQClient(configPath string) (*RabbitMQClient, error) {
+func newRabbitMQClient() (*RabbitMQClient, error) {
 	// 加载配置
 	cfg, err := config.InitLoadConfig()
 	if err != nil {

@@ -26,7 +26,7 @@ var (
 // @param configPath string: 配置文件路径
 // @return *RedisClient: Redis 客户端实例
 // @return error: 初始化过程中可能出现的错误
-func initRedis(configPath string) (*RedisClient, error) {
+func initRedis() (*RedisClient, error) {
 	// 加载配置文件
 	configRedis, err := config.InitLoadConfig()
 	if err != nil {
@@ -57,14 +57,13 @@ func initRedis(configPath string) (*RedisClient, error) {
 }
 
 // InitRedisConfig 获取 Redis 单例
-// @param configPath string: 配置文件路径
 // @return *RedisClient: Redis 客户端实例
 // @return error: 可能的错误，如果 Redis 无法初始化
-func InitRedisConfig(configPath string) (*RedisClient, error) {
+func InitRedisConfig() (*RedisClient, error) {
 	// 保证 Redis 客户端只被初始化一次
 	once.Do(func() {
 		var err error
-		instance, err = initRedis(configPath)
+		instance, err = initRedis()
 		if err != nil {
 			fmt.Printf("初始化 Redis 失败: %v", err)
 		}
@@ -92,8 +91,8 @@ func (r *RedisClient) Set(key string, value interface{}, expiration time.Duratio
 // @param key string: 要获取的键
 // @return string: 获取到的值，如果 key 不存在则返回空字符串
 // @return error: 如果查询失败，则返回错误
-func (r *RedisClient) Get(key string) (string, error) {
-	value, err := r.Client.Get(r.Ctx, key).Result()
+func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+	value, err := r.Client.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", nil // key 不存在

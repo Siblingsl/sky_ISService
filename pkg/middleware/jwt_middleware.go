@@ -14,9 +14,8 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// 定义不需要 token 验证的路径
 		noAuthPaths := []string{
 			"/auth/admins/login",
-			"/auth/login",
-			"/auth/register",
 			"/auth/admins/code",
+			"/auth/admins/getTest",
 			"/swagger/index.html",
 		}
 

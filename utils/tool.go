@@ -166,14 +166,24 @@ func ExtractConditions(ctx *gin.Context) (int, int, map[string]interface{}) {
 	return page, size, conditions
 }
 
-// 获取当前工作目录并返回与相对路径组合后的绝对路径
-func GetAbsolutePath(relativePath string) (string, error) {
+// GetAbsolutePath 获取当前工作目录并返回与相对路径组合后的绝对路径
+func GetAbsolutePath(relativePath string) string {
 	// 获取当前工作目录
 	wd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("获取当前目录错误: %v", err)
+		return "获取当前目录错误"
 	}
 	// 构造绝对路径
 	absolutePath := filepath.Join(wd, relativePath)
-	return absolutePath, nil
+	return absolutePath
+}
+
+// Contains 判断数组中是否包含某个元素
+func Contains(slice []int, item int) bool {
+	for _, a := range slice {
+		if a == item {
+			return true
+		}
+	}
+	return false
 }

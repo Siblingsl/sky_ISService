@@ -48,7 +48,7 @@ func (c *AuthController) AuthControllerRoutes(r *gin.Engine) {
 			return
 		}
 		// 调用服务层进行登陆验证
-		token, err := c.service.AdminLogin(ctx, req)
+		token, err := c.service.AdminLoginToken(ctx, req)
 		if err != nil {
 			utils.Error(ctx, http.StatusBadRequest, err.Error())
 			return
@@ -78,48 +78,21 @@ func (c *AuthController) AuthControllerRoutes(r *gin.Engine) {
 			utils.Error(ctx, http.StatusBadRequest, err.Error())
 			return
 		}
+
 		utils.Success(ctx, 1)
 	})
 
-	// 注册路由
-	//authGroup.GET("/register", func(ctx *gin.Context) {
-	//	username := ctx.DefaultQuery("username", "shilei")
-	//	password := ctx.DefaultQuery("password", "123456")
-	//
-	//	registerRequest := &pb.RegisterRequest{
-	//		Username: username,
-	//		Password: password,
-	//	}
-	//
-	//	res, err := c.service.Register(ctx, registerRequest)
-	//	if err != nil {
-	//		// 记录错误日志
-	//		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
-	//		return
-	//	}
-	//	utils.Success(ctx, res)
-	//})
+	authGroup.GET("/admins/getTest", func(ctx *gin.Context) {
+		email := ctx.Query("email")
+		if email == "" {
+			utils.Error(ctx, http.StatusBadRequest, "邮箱不能为空")
+		}
+		data, err := c.service.Testxxxx(ctx, email)
+		if err != nil {
+			utils.Error(ctx, http.StatusBadRequest, err.Error())
+			return
+		}
 
-	// 登陆路由
-	//authGroup.GET("/login", func(ctx *gin.Context) {
-	//	username := ctx.DefaultQuery("username", "shilei")
-	//	password := ctx.DefaultQuery("password", "123456")
-	//
-	//	// 参数转换为 gRPC 请求
-	//	loginRequest := &pb.LoginRequest{
-	//		Username: username,
-	//		Password: password,
-	//	}
-	//	// 调用 gRPC 服务
-	//	res, err := c.service.Login(ctx, loginRequest)
-	//	if err != nil {
-	//		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	//		return
-	//	}
-	//	utils.Success(ctx, res)
-	//})
-	//
-	//authGroup.GET("/demo", func(ctx *gin.Context) {
-	//	ctx.String(200, "12131654513") // 正确的响应方式，返回状态码和内容
-	//})
+		utils.Success(ctx, data)
+	})
 }
