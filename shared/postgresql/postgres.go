@@ -5,6 +5,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"sky_ISService/config"
+	"time"
 )
 
 // InitPostgres 初始化 PostgresSQL 客户端
@@ -24,6 +25,10 @@ func initPostgres(serviceName string) (*gorm.DB, error) {
 		serviceConfig.PostgreSQL.Host, serviceConfig.PostgreSQL.Username, serviceConfig.PostgreSQL.Password, serviceConfig.PostgreSQL.Database, serviceConfig.PostgreSQL.Port)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	sqlDB, err := db.DB()
+	sqlDB.SetMaxOpenConns(25)                 // 最大打开连接数
+	sqlDB.SetMaxIdleConns(25)                 // 最大空闲连接数
+	sqlDB.SetConnMaxLifetime(5 * time.Second) // 连接最大存活时间
 	if err != nil {
 		return nil, fmt.Errorf("无法连接到 PostgreSQL: %v", err)
 	}

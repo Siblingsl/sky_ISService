@@ -8,7 +8,6 @@ import (
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 	"log"
-	"sky_ISService/config"
 	"sky_ISService/pkg/initialize"
 	"sky_ISService/pkg/middleware"
 	"sky_ISService/proto/system"
@@ -17,7 +16,6 @@ import (
 	"sky_ISService/shared/cache"
 	"sky_ISService/shared/elasticsearch"
 	"sky_ISService/shared/mq"
-	postgres "sky_ISService/shared/postgresql"
 	consul "sky_ISService/shared/registerservice"
 )
 
@@ -33,6 +31,20 @@ func main() {
 
 	// 使用 Fx 创建应用
 	app := fx.New(
+		// 提供 gin.Engine 实例到容器中
+		fx.Provide(
+			func(db *gorm.DB, elasticClient *elasticsearch.ElasticsearchClient) *gin.Engine {
+				r := gin.Default()
+				// 使用中间件
+				r.Use(middleware.DBMiddleware(db))
+				r.Use(middleware.LoggerMiddleware(serviceName, elasticClient))
+
+				return r
+			},
+		),
+		// 注册 AuthModule
+		moduleAuth.AuthModule,
+
 		fx.Provide(
 			// 提供 Elasticsearch 客户端
 			func() *elasticsearch.ElasticsearchClient {
@@ -58,15 +70,15 @@ func main() {
 		),
 
 		// 提供 PostgreSQL 客户端
-		fx.Provide(
-			func() (*gorm.DB, error) {
-				db, err := postgres.InitPostgresConfig(serviceName)
-				if err != nil {
-					log.Fatalf("PostgreSQL 初始化失败: %v", err)
-				}
-				return db, nil
-			},
-		),
+		//fx.Provide(
+		//	func() (*gorm.DB, error) {
+		//		db, err := postgres.InitPostgresConfig(serviceName)
+		//		if err != nil {
+		//			log.Fatalf("PostgreSQL 初始化失败: %v", err)
+		//		}
+		//		return db, nil
+		//	},
+		//),
 
 		// 初始化日志系统
 		//fx.Provide(
@@ -81,21 +93,6 @@ func main() {
 		//	},
 		//),
 
-		// 提供 gin.Engine 实例到容器中
-		fx.Provide(
-			func(db *gorm.DB, elasticClient *elasticsearch.ElasticsearchClient) *gin.Engine {
-				r := gin.Default()
-				// 使用中间件
-				r.Use(middleware.DBMiddleware(db))
-				r.Use(middleware.LoggerMiddleware(serviceName, elasticClient))
-
-				return r
-			},
-		),
-
-		// 注册 AuthModule
-		moduleAuth.AuthModule,
-
 		// 提供 Consul 客户端
 		fx.Provide(
 			func() (*api.Client, error) {
@@ -108,16 +105,16 @@ func main() {
 		),
 
 		// 在服务启动时注册服务到 Consul
-		//fx.Invoke(func(client *api.Client) {
-		//	serviceName := "auth"
-		//	serviceID := fmt.Sprintf("%s-id", serviceName)
-		//	address := "127.0.0.1" // 服务的 IP 地址
-		//	port := 8081           // 服务端口
-		//	// 注册服务到 Consul
-		//	if err := consul.RegisterServiceConsul(client, serviceName, serviceID, address, port); err != nil {
-		//		log.Fatalf("服务注册失败: %v", err)
-		//	}
-		//}),
+		fx.Invoke(func(client *api.Client) {
+			serviceName := "auth"
+			serviceID := fmt.Sprintf("%s-id", serviceName)
+			address := "127.0.0.1" // 服务的 IP 地址
+			port := 8081           // 服务端口
+			// 注册服务到 Consul
+			if err := consul.RegisterServiceConsul(client, serviceName, serviceID, address, port); err != nil {
+				log.Fatalf("服务注册失败: %v", err)
+			}
+		}),
 
 		// 启动时运行的函数
 		fx.Invoke(func(r *gin.Engine,
@@ -129,12 +126,12 @@ func main() {
 			//sharedLogger.SetLogger(logger)
 
 			// 启动 Gin 引擎
-			fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port))
-			go func() {
-				if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port)); err != nil {
-					log.Fatalf("服务启动失败: %v", err)
-				}
-			}()
+			//fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port))
+			//go func() {
+			//	if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port)); err != nil {
+			//		log.Fatalf("服务启动失败: %v", err)
+			//	}
+			//}()
 			//fmt.Println(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port1))
 			//go func() {
 			//	if err := r.Run(fmt.Sprintf("%s:%s", config.GetConfig().Auth.Host, config.GetConfig().Auth.Port1)); err != nil {

@@ -44,6 +44,10 @@ var SystemModules = fx.Options(
 		database.ModelsToMigrate = append(
 			database.ModelsToMigrate,
 			&models.SkySystemAdmins{},
+			&models.SkySystemMenus{},
+			&models.SkySystemRoles{},
+			&models.AdminsRoles{},
+			&models.RolesMenus{},
 		)
 
 		// 执行自动迁移

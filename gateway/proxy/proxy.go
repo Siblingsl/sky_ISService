@@ -54,9 +54,9 @@ func NewProxy() *Proxy {
 // 初始化服务节点
 func (p *Proxy) initServices() {
 	p.services = make(map[string][]*WeightedNode)
-	p.services["auth"] = []*WeightedNode{
-		{addr: fmt.Sprintf("%s:%s", config.GetConfig().Auth.Addr, config.GetConfig().Auth.Port), weight: config.GetConfig().Auth.Weight1},
-		//{addr: fmt.Sprintf("%s:%s", config.GetConfig().Auth.Addr, config.GetConfig().Auth.Port1), weight: config.GetConfig().Auth.Weight2},
+	p.services["security"] = []*WeightedNode{
+		{addr: fmt.Sprintf("%s:%s", config.GetConfig().Security.Addr, config.GetConfig().Security.Port), weight: config.GetConfig().Security.Weight1},
+		{addr: fmt.Sprintf("%s:%s", config.GetConfig().Security.Addr, config.GetConfig().Security.Port1), weight: config.GetConfig().Security.Weight2},
 	}
 	p.services["system"] = []*WeightedNode{
 		{addr: fmt.Sprintf("%s:%s", config.GetConfig().System.Addr, config.GetConfig().System.Port), weight: config.GetConfig().System.Weight1},
@@ -91,9 +91,9 @@ func (p *Proxy) NewHttpReverseProxy(target *url.URL) *httputil.ReverseProxy {
 func (p *Proxy) findService(r *http.Request) *WeightedNode {
 	path := r.URL.Path
 	serviceMap := map[string]string{
-		"/auth":   "auth",
-		"/system": "system",
-		"/order":  "order",
+		"/security": "security",
+		"/system":   "system",
+		"/order":    "order",
 	}
 
 	for prefix, service := range serviceMap {

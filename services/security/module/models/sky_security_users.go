@@ -1,11 +1,8 @@
 package models
 
-import (
-	"sky_ISService/utils/database"
-)
+import "sky_ISService/utils/database"
 
-// SkyAuthUser 继承 CommonBase
-type SkyAuthUser struct {
+type SkySecurityUsers struct {
 	database.CommonBase `gorm:"embedded"` // 继承公共字段
 	ID                  uint              `gorm:"primaryKey;autoIncrement" json:"id"`                // 使用 uint 类型
 	Username            string            `gorm:"type:varchar(100);unique;not null" json:"username"` // 用户名

@@ -20,8 +20,8 @@ type ServerConfig struct {
 	Weight2 int    `mapstructure:"weight2"`
 }
 
-// AuthConfig 认证服务配置
-type AuthConfig struct {
+// SecurityConfig 认证服务配置
+type SecurityConfig struct {
 	Host    string `mapstructure:"host"`
 	Port    string `mapstructure:"port"`
 	Port1   string `mapstructure:"port1"`
@@ -48,8 +48,8 @@ type defaultConfig struct {
 
 // PathConfig 配置结构
 type PathConfig struct {
-	Auth   string `mapstructure:"auth"`
-	System string `mapstructure:"system"`
+	Security string `mapstructure:"security"`
+	System   string `mapstructure:"system"`
 }
 
 // ElasticsearchConfig Elasticsearch 配置结构
@@ -118,10 +118,10 @@ type AESSecret struct {
 // InitStructureConfig 配置结构
 type InitStructureConfig struct {
 	// 服务配置
-	Server  ServerConfig  `mapstructure:"server"`
-	Auth    AuthConfig    `mapstructure:"auth"`
-	System  SystemConfig  `mapstructure:"system"`
-	Default defaultConfig `mapstructure:"default"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Security SecurityConfig `mapstructure:"security"`
+	System   SystemConfig   `mapstructure:"system"`
+	Default  defaultConfig  `mapstructure:"default"`
 
 	// 子服务路径
 	PathConfig PathConfig `mapstructure:"path_config"`

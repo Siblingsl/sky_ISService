@@ -13,9 +13,6 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 定义不需要 token 验证的路径
 		noAuthPaths := []string{
-			"/auth/admins/login",
-			"/auth/admins/code",
-			"/auth/admins/getTest",
 			"/swagger/index.html",
 		}
 
@@ -25,6 +22,12 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				c.Next()
 				return
 			}
+		}
+
+		// 如果是以 /security/admins/ 开头的路径，放行
+		if strings.HasPrefix(c.Request.URL.Path, "/security/admins/") {
+			c.Next()
+			return
 		}
 
 		// 从 Header 获取 Token

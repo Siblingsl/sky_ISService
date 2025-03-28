@@ -108,12 +108,12 @@ func main() {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					//// 本地启动子服务
-					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Auth), wg)
-					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
+					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Security), wg)
+					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
 
 					// 本地模拟服务器
-					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Auth), wg)
-					startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
+					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.Security), wg)
+					//startServiceWithWaitGroup(utils.GetAbsolutePath(config.GetConfig().PathConfig.System), wg)
 
 					// 服务器上用的
 					//startServiceWithWaitGroup("/www/wwwroot/go/auth", wg)

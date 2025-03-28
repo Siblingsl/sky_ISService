@@ -71,19 +71,21 @@ COMMENT ON COLUMN "public"."sky_system_menus"."deleted" IS '删除标志';
 -- ----------------------------
 -- Table structure for sky_system_roles
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."sky_system_roles";
-CREATE TABLE "public"."sky_system_roles" (
-                                             "id" int4 NOT NULL DEFAULT nextval('sky_auth_roles_id_seq'::regclass),
-                                             "role_name" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
-                                             "description" text COLLATE "pg_catalog"."default",
-                                             "status" bool DEFAULT true,
-                                             "created_by" int4,
-                                             "updated_by" int4,
-                                             "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-                                             "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-                                             "deleted" bool DEFAULT false
-)
-;
+DROP TABLE IF EXISTS sky_system_roles;
+CREATE TABLE sky_system_roles (
+                                  id SERIAL PRIMARY KEY,              -- 主键，自增
+                                  role_name VARCHAR(100) NOT NULL,     -- 角色名称
+                                  role_key VARCHAR(100) NOT NULL,      -- 角色唯一标识
+                                  role_sort VARCHAR(100) NOT NULL,     -- 角色排序
+                                  description TEXT,                    -- 角色描述
+                                  status BOOLEAN DEFAULT TRUE,         -- 状态字段，默认为 true
+                                  created_by INT,                      -- 创建者
+                                  updated_by INT,                      -- 更新者
+                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- 创建时间
+                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- 更新时间
+                                  is_deleted BOOLEAN DEFAULT FALSE        -- 软删除标志，默认为 false
+);
+
 ALTER TABLE "public"."sky_system_roles" OWNER TO "postgres";
 COMMENT ON COLUMN "public"."sky_system_roles"."id" IS '主键';
 COMMENT ON COLUMN "public"."sky_system_roles"."role_name" IS '角色名称';
